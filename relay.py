@@ -18,18 +18,25 @@ def start_channel(ch):
     name = ch["name"]
     mpd = ch["mpd"]
     key = ch["key"]
-    keyId = ch["keyId"]
 
     outdir = f"{HLS}/{name}"
     os.makedirs(outdir, exist_ok=True)
 
+    playlist = f"{outdir}/index.m3u8"
+
     cmd = [
-        "packager",
-        f"in={mpd},stream=video,init_segment={outdir}/video_init.mp4,segment_template={outdir}/video_$Number$.m4s",
-        f"in={mpd},stream=audio,init_segment={outdir}/audio_init.mp4,segment_template={outdir}/audio_$Number$.m4s",
-        "--enable_raw_key_decryption",
-        "--keys", f"key_id={keyId}:key={key}",
-        "--hls_master_playlist_output", f"{outdir}/index.m3u8"
+        "ffmpeg",
+        "-loglevel", "error",
+        "-cenc_decryption_key", key,
+        "-i", mpd,
+        "-map", "0:v",
+        "-map", "0:a",
+        "-c", "copy",
+        "-f", "hls",
+        "-hls_time", "4",
+        "-hls_list_size", "10",
+        "-hls_flags", "delete_segments+append_list",
+        playlist
     ]
 
     print("Start:", name)
@@ -100,6 +107,8 @@ def http_server():
     os.chdir(HLS)
 
     server = ThreadingHTTPServer(("0.0.0.0", 8151), SimpleHTTPRequestHandler)
+
+    print("HTTP server running on 8151")
 
     server.serve_forever()
 
