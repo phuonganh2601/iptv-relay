@@ -2,8 +2,6 @@ import json
 import subprocess
 import os
 import time
-import threading
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 CONFIG = "/config/channels.json"
 HLS = "/hls"
@@ -27,15 +25,28 @@ def start_channel(ch):
     cmd = [
         "ffmpeg",
         "-loglevel", "error",
+
+        "-fflags", "nobuffer",
+        "-flags", "low_delay",
+
+        "-reconnect", "1",
+        "-reconnect_streamed", "1",
+        "-reconnect_delay_max", "5",
+
         "-cenc_decryption_key", key,
+
         "-i", mpd,
+
         "-map", "0:v",
         "-map", "0:a",
+
         "-c", "copy",
+
         "-f", "hls",
-        "-hls_time", "4",
-        "-hls_list_size", "10",
-        "-hls_flags", "delete_segments+append_list",
+        "-hls_time", "2",
+        "-hls_list_size", "6",
+        "-hls_flags", "delete_segments+append_list+omit_endlist",
+
         playlist
     ]
 
@@ -102,25 +113,8 @@ def monitor():
         time.sleep(5)
 
 
-def http_server():
-
-    os.chdir(HLS)
-
-    server = ThreadingHTTPServer(("0.0.0.0", 8151), SimpleHTTPRequestHandler)
-
-    print("HTTP server running on 8151")
-
-    server.serve_forever()
-
-
-def main():
+if __name__ == "__main__":
 
     os.makedirs(HLS, exist_ok=True)
 
-    threading.Thread(target=http_server, daemon=True).start()
-
     monitor()
-
-
-if __name__ == "__main__":
-    main()

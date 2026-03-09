@@ -1,14 +1,19 @@
-FROM python:3.11-alpine
+FROM alpine:3.20
 
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache \
+    python3 \
+    ffmpeg \
+    nginx \
+    curl
 
 WORKDIR /app
 
 COPY relay.py .
+COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN mkdir /hls
 RUN mkdir /config
 
 EXPOSE 8151
 
-CMD ["python","relay.py"]
+CMD python3 relay.py & nginx -g 'daemon off;'
